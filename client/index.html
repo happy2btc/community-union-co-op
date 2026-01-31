@@ -205,11 +205,11 @@
                 }
             });
 
-            // Handle forgot password - now shows change password form
+            // Handle forgot password - sends password reset email
             forgotPasswordLink.addEventListener('click', (e) => {
                 e.preventDefault();
                 
-                // Create change password modal
+                // Create password reset modal
                 const modal = document.createElement('div');
                 modal.style.cssText = `
                     position: fixed;
@@ -226,68 +226,48 @@
                 
                 modal.innerHTML = `
                     <div style="background: white; padding: 30px; border-radius: 12px; max-width: 400px; width: 90%; position: relative;">
-                        <h3 style="margin-top: 0; color: #6b4f1d;">Change Password</h3>
-                        <p style="color: #666; font-size: 0.9em; margin-bottom: 20px;">Enter your email and new password to update your account.</p>
-                        <form id="change-password-form">
+                        <h3 style="margin-top: 0; color: #6b4f1d;">Reset Password</h3>
+                        <p style="color: #666; font-size: 0.9em; margin-bottom: 20px;">Enter your email address and we'll send you a link to reset your password.</p>
+                        <form id="reset-password-form">
                             <input type="email" id="reset-email" placeholder="Email Address" required style="width: 100%; padding: 10px; margin: 10px 0; border: 1px solid #ccc; border-radius: 4px; box-sizing: border-box;">
-                            <input type="password" id="new-password" placeholder="New Password" required style="width: 100%; padding: 10px; margin: 10px 0; border: 1px solid #ccc; border-radius: 4px; box-sizing: border-box;">
-                            <input type="password" id="confirm-password" placeholder="Confirm New Password" required style="width: 100%; padding: 10px; margin: 10px 0; border: 1px solid #ccc; border-radius: 4px; box-sizing: border-box;">
                             <div style="display: flex; gap: 10px; margin-top: 20px;">
-                                <button type="submit" style="flex: 1; background: #2e8b57; color: white; padding: 12px; border: none; border-radius: 6px; cursor: pointer;">Change Password</button>
-                                <button type="button" id="cancel-change-password" style="flex: 1; background: #ccc; color: black; padding: 12px; border: none; border-radius: 6px; cursor: pointer;">Cancel</button>
+                                <button type="submit" style="flex: 1; background: #2e8b57; color: white; padding: 12px; border: none; border-radius: 6px; cursor: pointer;">Send Reset Link</button>
+                                <button type="button" id="cancel-reset" style="flex: 1; background: #ccc; color: black; padding: 12px; border: none; border-radius: 6px; cursor: pointer;">Cancel</button>
                             </div>
                         </form>
-                        <div id="password-status" style="margin-top: 15px; font-weight: bold;"></div>
+                        <div id="reset-status" style="margin-top: 15px; font-weight: bold;"></div>
                     </div>
                 `;
                 
                 document.body.appendChild(modal);
                 
                 // Handle form submission
-                document.getElementById('change-password-form').addEventListener('submit', async (e) => {
+                document.getElementById('reset-password-form').addEventListener('submit', async (e) => {
                     e.preventDefault();
                     
                     const email = document.getElementById('reset-email').value;
-                    const newPassword = document.getElementById('new-password').value;
-                    const confirmPassword = document.getElementById('confirm-password').value;
-                    const statusEl = document.getElementById('password-status');
+                    const statusEl = document.getElementById('reset-status');
                     
                     // Validation
-                    if (!email || !newPassword || !confirmPassword) {
-                        statusEl.textContent = 'Please fill in all fields';
+                    if (!email) {
+                        statusEl.textContent = 'Please enter your email address';
                         statusEl.style.color = 'red';
                         return;
                     }
                     
-                    if (newPassword !== confirmPassword) {
-                        statusEl.textContent = 'New passwords do not match';
-                        statusEl.style.color = 'red';
-                        return;
-                    }
-                    
-                    if (newPassword.length < 6) {
-                        statusEl.textContent = 'New password must be at least 6 characters';
-                        statusEl.style.color = 'red';
-                        return;
-                    }
-                    
-                    statusEl.textContent = 'Changing password...';
+                    statusEl.textContent = 'Sending reset link...';
                     statusEl.style.color = 'black';
                     
                     try {
-                        // For password reset without email verification, we'll use Supabase's admin function
-                        // This requires the user to be authenticated, so we'll try a different approach
-                        
-                        // First, attempt to sign in with a temporary method or use reset
                         const { error } = await supabase.auth.resetPasswordForEmail(email, {
                             redirectTo: window.location.origin + window.location.pathname + '?reset=true&email=' + encodeURIComponent(email)
                         });
                         
                         if (error) {
-                            statusEl.textContent = 'Password reset request failed: ' + error.message;
+                            statusEl.textContent = 'Failed to send reset email: ' + error.message;
                             statusEl.style.color = 'red';
                         } else {
-                            statusEl.textContent = 'Password reset email sent! Check your inbox and follow the link to complete the change.';
+                            statusEl.textContent = 'Password reset email sent! Check your inbox and follow the link to reset your password.';
                             statusEl.style.color = 'green';
                             
                             // Close modal after 3 seconds
@@ -296,13 +276,13 @@
                             }, 3000);
                         }
                     } catch (error) {
-                        statusEl.textContent = 'Error: ' + error.message;
+                        statusEl.textContent = 'Error sending reset email: ' + error.message;
                         statusEl.style.color = 'red';
                     }
                 });
                 
                 // Handle cancel
-                document.getElementById('cancel-change-password').addEventListener('click', () => {
+                document.getElementById('cancel-reset').addEventListener('click', () => {
                     document.body.removeChild(modal);
                 });
                 
